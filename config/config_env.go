@@ -16,16 +16,16 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/uber/jaeger-client-go"
+	"net/url"
 )
 
 const (
@@ -159,46 +159,38 @@ func reporterConfigFromEnv() (*ReporterConfig, error) {
 		}
 	}
 
-	host := jaeger.DefaultUDPSpanServerHost
 	ep := os.Getenv(envEndpoint)
-	if e := os.Getenv(envAgentHost); e != "" {
-		if ep != "" {
-			return nil, errors.Errorf("cannot set env vars %s and %s together", envAgentHost, envEndpoint)
-		}
-		host = e
-	}
-
-	port := jaeger.DefaultUDPSpanServerPort
-	if e := os.Getenv(envAgentPort); e != "" {
-		if ep != "" {
-			return nil, errors.Errorf("cannot set env vars %s and %s together", envAgentPort, envEndpoint)
-		}
-		if value, err := strconv.ParseInt(e, 10, 0); err == nil {
-			port = int(value)
-		} else {
-			return nil, errors.Wrapf(err, "cannot parse env var %s=%s", envAgentPort, e)
-		}
-	}
-
-	// the side effect of this is that we are building the default value, even if none of the env vars
-	// were not explicitly passed
-	rc.LocalAgentHostPort = fmt.Sprintf("%s:%d", host, port)
-
 	if ep != "" {
 		u, err := url.ParseRequestURI(ep)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse env var %s=%s", envEndpoint, ep)
 		}
 		rc.CollectorEndpoint = fmt.Sprintf("%s", u)
-	}
+		user := os.Getenv(envUser)
+		pswd := os.Getenv(envPassword)
+		if user != "" && pswd == "" || user == "" && pswd != "" {
+			return nil, errors.Errorf("you must set %s and %s env vars together", envUser, envPassword)
+		}
+		rc.User = user
+		rc.Password = pswd
+	} else {
+		host := jaeger.DefaultUDPSpanServerHost
+		if e := os.Getenv(envAgentHost); e != "" {
+			host = e
+		}
 
-	user := os.Getenv(envUser)
-	pswd := os.Getenv(envPassword)
-	if user != "" && pswd == "" || user == "" && pswd != "" {
-		return nil, errors.Errorf("you must set %s and %s env vars together", envUser, envPassword)
+		port := jaeger.DefaultUDPSpanServerPort
+		if e := os.Getenv(envAgentPort); e != "" {
+			if value, err := strconv.ParseInt(e, 10, 0); err == nil {
+				port = int(value)
+			} else {
+				return nil, errors.Wrapf(err, "cannot parse env var %s=%s", envAgentPort, e)
+			}
+		}
+		// the side effect of this is that we are building the default value, even if none of the env vars
+		// were not explicitly passed
+		rc.LocalAgentHostPort = fmt.Sprintf("%s:%d", host, port)
 	}
-	rc.User = user
-	rc.Password = pswd
 
 	return rc, nil
 }
