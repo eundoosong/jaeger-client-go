@@ -160,34 +160,25 @@ func reporterConfigFromEnv() (*ReporterConfig, error) {
 	}
 
 	host := jaeger.DefaultUDPSpanServerHost
-	ep := os.Getenv(envEndpoint)
 	if e := os.Getenv(envAgentHost); e != "" {
-		if ep != "" {
-			return nil, errors.Errorf("cannot set env vars %s and %s together", envAgentHost, envEndpoint)
-		}
 		host = e
 	}
-
 	port := jaeger.DefaultUDPSpanServerPort
 	if e := os.Getenv(envAgentPort); e != "" {
-		if ep != "" {
-			return nil, errors.Errorf("cannot set env vars %s and %s together", envAgentPort, envEndpoint)
-		}
 		if value, err := strconv.ParseInt(e, 10, 0); err == nil {
 			port = int(value)
 		} else {
 			return nil, errors.Wrapf(err, "cannot parse env var %s=%s", envAgentPort, e)
 		}
 	}
-
 	// the side effect of this is that we are building the default value, even if none of the env vars
 	// were not explicitly passed
 	rc.LocalAgentHostPort = fmt.Sprintf("%s:%d", host, port)
 
-	if ep != "" {
-		u, err := url.ParseRequestURI(ep)
+	if e := os.Getenv(envEndpoint); e != "" {
+		u, err := url.ParseRequestURI(e)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot parse env var %s=%s", envEndpoint, ep)
+			return nil, errors.Wrapf(err, "cannot parse env var %s=%s", envEndpoint, e)
 		}
 		rc.CollectorEndpoint = fmt.Sprintf("%s", u)
 	}
