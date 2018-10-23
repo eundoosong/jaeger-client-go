@@ -162,8 +162,6 @@ func TestReporterConfigFromEnv(t *testing.T) {
 	assert.Equal(t, "nonlocalhost:6832", cfg.Reporter.LocalAgentHostPort)
 
 	// Test HTTP transport
-	os.Unsetenv(envAgentHost)
-	os.Unsetenv(envAgentPort)
 	os.Setenv(envEndpoint, "http://1.2.3.4:5678/api/traces")
 
 	// test
@@ -268,35 +266,6 @@ func TestParsingUserPasswordErrorEnv(t *testing.T) {
 			envPassword))
 		os.Unsetenv(test.envVar)
 	}
-}
-
-func TestHostPortEndpointEnvError(t *testing.T) {
-	tests := []struct {
-		envVar string
-		value  string
-		err    string
-	}{
-		{
-			envVar: envAgentHost,
-			value:  "user",
-			err:    fmt.Sprintf("cannot set env vars %s and %s together", envAgentHost, envEndpoint),
-		},
-		{
-			envVar: envAgentPort,
-			value:  "password",
-			err:    fmt.Sprintf("cannot set env vars %s and %s together", envAgentPort, envEndpoint),
-		},
-	}
-
-	os.Setenv(envEndpoint, "http://1.2.3.4:5678/api/traces")
-	for _, test := range tests {
-		os.Setenv(test.envVar, test.value)
-		_, err := FromEnv()
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), test.err)
-		os.Unsetenv(test.envVar)
-	}
-	os.Unsetenv(envEndpoint)
 }
 
 func TestInvalidSamplerType(t *testing.T) {
