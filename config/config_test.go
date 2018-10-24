@@ -148,8 +148,6 @@ func TestReporterConfigFromEnv(t *testing.T) {
 	os.Setenv(envReporterLogSpans, "true")
 	os.Setenv(envAgentHost, "nonlocalhost")
 	os.Setenv(envAgentPort, "6832")
-	os.Setenv(envUser, "user")
-	os.Setenv(envPassword, "password")
 
 	// test
 	cfg, err := FromEnv()
@@ -163,13 +161,17 @@ func TestReporterConfigFromEnv(t *testing.T) {
 
 	// Test HTTP transport
 	os.Setenv(envEndpoint, "http://1.2.3.4:5678/api/traces")
-
+	os.Setenv(envUser, "user")
+	os.Setenv(envPassword, "password")
 	// test
 	cfg, err = FromEnv()
 	assert.NoError(t, err)
 
 	// verify
 	assert.Equal(t, "http://1.2.3.4:5678/api/traces", cfg.Reporter.CollectorEndpoint)
+	assert.Equal(t, "user", cfg.Reporter.User)
+	assert.Equal(t, "password", cfg.Reporter.Password)
+	assert.Equal(t, "", cfg.Reporter.LocalAgentHostPort)
 
 	// cleanup
 	os.Unsetenv(envReporterMaxQueueSize)
@@ -257,7 +259,7 @@ func TestParsingUserPasswordErrorEnv(t *testing.T) {
 			value:  "password",
 		},
 	}
-
+	os.Setenv(envEndpoint, "http://localhost:8080")
 	for _, test := range tests {
 		os.Setenv(test.envVar, test.value)
 		_, err := FromEnv()
