@@ -56,7 +56,7 @@ lint:
 .PHONY: install
 install:
 	@echo "###install start"
-	glide --version || go get github.com/Masterminds/glide
+	go get github.com/Masterminds/glide
 	@echo "###install end"
 ifeq ($(USE_DEP),true)
 	@echo "###dep check"
